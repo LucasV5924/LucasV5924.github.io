@@ -1,0 +1,50 @@
+local timeStopped = false
+local objectsToStop = {}
+
+local function stopObject(object)
+    if object:IsA("BasePart") or object:IsA("VehicleSeat") then
+        object:SetNetworkOwner(nil)
+        if object:IsA("BasePart") then
+            object.Anchored = true
+        elseif object:IsA("VehicleSeat") then
+            object.Disabled = true
+        end
+        table.insert(objectsToStop, object)
+    elseif object:IsA("Model") then
+        for _, part in pairs(object:GetDescendants()) do
+            if part:IsA("BasePart") and not part.Anchored then
+                part:SetNetworkOwner(nil)
+                part.Anchored = true
+                table.insert(objectsToStop, part)
+            end
+        end
+    end
+end
+
+local function resumeObject(object)
+    if table.find(objectsToStop, object) then
+        object:SetNetworkOwner(player)
+        if object:IsA("BasePart") then
+            object.Anchored = false
+        elseif object:IsA("VehicleSeat") then
+            object.Disabled = false
+        end
+        table.remove(objectsToStop, table.find(objectsToStop, object))
+    end
+end
+
+game:GetService("UserInputService").InputBegan:Connect(function(input, gameProcessedEvent)
+    if input.KeyCode == Enum.KeyCode.P then
+        timeStopped = not timeStopped
+        if timeStopped then
+            for _, object in pairs(game.Workspace:GetDescendants()) do
+                stopObject(object)
+            end
+        else
+            for _, object in pairs(objectsToStop) do
+                resumeObject(object)
+            end
+            objectsToStop = {}
+        end
+    end
+end)
